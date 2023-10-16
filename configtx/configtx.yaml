@@ -1,0 +1,182 @@
+Organizations:
+    -   &Orderer
+        Name: Orderer
+        ID: OrdererMSP
+        MSPDir: ../organizations/ordererOrganizations/moh.ps/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('OrdererMSP.member')"
+            Writers:
+                Type: Signature
+                Rule: "OR('OrdererMSP.member')"
+            Admins:
+                Type: Signature
+                Rule: "OR('OrdererMSP.admin')"
+        OrdererEndpoints:
+            -   orderer.moh.ps:10050
+
+    -   &Dopmam
+        Name: DopmamMSP
+        ID: DopmamMSP
+        MSPDir: ../organizations/peerOrganizations/dopmam.moh.ps/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('DopmamMSP.admin', 'DopmamMSP.peer', 'DopmamMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('DopmamMSP.admin', 'DopmamMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('DopmamMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('DopmamMSP.peer')"
+
+    -   &Shifa
+        Name: ShifaMSP
+        ID: ShifaMSP
+        MSPDir: ../organizations/peerOrganizations/shifa.moh.ps/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('ShifaMSP.admin', 'ShifaMSP.peer', 'ShifaMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('ShifaMSP.admin', 'ShifaMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('ShifaMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('ShifaMSP.peer')"
+
+    -   &Naser
+        Name: NaserMSP
+        ID: NaserMSP
+        MSPDir: ../organizations/peerOrganizations/naser.moh.ps/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('NaserMSP.admin', 'NaserMSP.peer', 'NaserMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('NaserMSP.admin', 'NaserMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('NaserMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('NaserMSP.peer')"
+
+Capabilities:
+    Channel: &ChannelCapabilities
+        V2_0: true
+    Orderer: &OrdererCapabilities
+        V2_0: true
+    Application: &ApplicationCapabilities
+        V2_0: true
+
+Application: &ApplicationDefaults
+    Organizations:
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+        LifecycleEndorsement:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Endorsement"
+        Endorsement:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Endorsement"
+    Capabilities:
+        <<: *ApplicationCapabilities
+
+Orderer: &OrdererDefaults
+    OrdererType: etcdraft
+    Addresses:
+        -   orderer.moh.ps:10050
+    EtcdRaft:
+        Consenters:
+        -   Host: orderer.moh.ps
+            Port: 10050
+            ClientTLSCert: ../organizations/ordererOrganizations/moh.ps/orderers/orderer.moh.ps/tls/server.crt
+            ServerTLSCert: ../organizations/ordererOrganizations/moh.ps/orderers/orderer.moh.ps/tls/server.crt
+    BatchTimeout: 2s
+    BatchSize:
+        MaxMessageCount: 10
+        AbsoluteMaxBytes: 99 MB
+        PreferredMaxBytes: 512 KB
+    Organizations:
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+        BlockValidation:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+
+Channel: &ChannelDefaults
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+    Capabilities:
+        <<: *ChannelCapabilities
+
+Profiles:
+    OrdererGenesis:
+        <<: *ChannelDefaults
+        Orderer:
+            <<: *OrdererDefaults
+            Organizations:
+                -   *Orderer
+            Capabilities:
+                <<: *OrdererCapabilities
+        Consortiums:
+            DopmamConsortium:
+                Organizations:
+                    -   *Dopmam
+                    -   *Shifa
+                    -   *Naser
+
+    DopmamShifaChannel:
+        Consortium: DopmamConsortium
+        <<: *ChannelDefaults
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                -   *Dopmam
+                -   *Shifa
+            Capabilities:
+                <<: *ApplicationCapabilities
+
+    DopmamNaserChannel:
+        Consortium: DopmamConsortium
+        <<: *ChannelDefaults
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                -   *Dopmam
+                -   *Naser
+            Capabilities:
+                <<: *ApplicationCapabilities
